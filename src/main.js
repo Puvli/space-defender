@@ -3,6 +3,7 @@ import { Starfield } from './stars.js';
 import { Player } from './player.js';
 import { EnemySpawner } from './enemies.js';
 import { createExplosion } from './particles.js';
+import { TouchControls } from './touch.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -23,6 +24,7 @@ window.addEventListener('resize', resize);
 
 // Game state
 const input = new Input();
+const touch = new TouchControls(canvas);
 const starfield = new Starfield(WIDTH, HEIGHT);
 let state = 'start'; // start | playing | gameover
 let player;
@@ -56,7 +58,7 @@ function update(dt) {
   starfield.update(dt);
 
   if (state === 'start') {
-    if (input.isPressed('Space') || input.isPressed('Enter')) {
+    if (input.isPressed('Space') || input.isPressed('Enter') || touch.shooting) {
       initGame();
       state = 'playing';
     }
@@ -64,7 +66,7 @@ function update(dt) {
   }
 
   if (state === 'gameover') {
-    if (input.isPressed('Space') || input.isPressed('Enter')) {
+    if (input.isPressed('Space') || input.isPressed('Enter') || touch.shooting) {
       state = 'start';
     }
     // Still update particles
@@ -73,10 +75,10 @@ function update(dt) {
   }
 
   // Playing state
-  player.update(dt, input, { width: WIDTH, height: HEIGHT });
+  player.update(dt, input, { width: WIDTH, height: HEIGHT }, touch);
 
   // Player shooting
-  if (player.canShoot(input)) {
+  if (player.canShoot(input, touch)) {
     playerBullets.push(player.shoot());
   }
 
@@ -248,7 +250,8 @@ function draw() {
 
     ctx.fillStyle = '#666';
     ctx.font = '12px monospace';
-    ctx.fillText('WASD / Arrows = Move | Space = Shoot', WIDTH / 2, HEIGHT / 2 + 60);
+    const isMobile = 'ontouchstart' in window;
+    ctx.fillText(isMobile ? 'Left = Move | Right = Shoot' : 'WASD / Arrows = Move | Space = Shoot', WIDTH / 2, HEIGHT / 2 + 60);
 
     if (highScore > 0) {
       ctx.fillStyle = '#ffa726';
@@ -264,6 +267,9 @@ function draw() {
   drawBullets(ctx, enemyBullets, '#ef5350');
   for (const p of particles) p.draw(ctx);
   drawHUD(ctx);
+
+  // Touch controls overlay
+  if (state === 'playing') touch.draw(ctx);
 
   if (state === 'gameover') {
     drawScreen('GAME OVER', `Score: ${score} | Press SPACE to restart`);

@@ -11,7 +11,8 @@ export class Player {
     this.invincible = 0;
   }
 
-  update(dt, input, bounds) {
+  update(dt, input, bounds, touch) {
+    // Keyboard
     if (input.isPressed('ArrowLeft') || input.isPressed('KeyA')) {
       this.x -= this.speed * dt;
     }
@@ -25,6 +26,12 @@ export class Player {
       this.y += this.speed * dt;
     }
 
+    // Touch joystick
+    if (touch && touch.active) {
+      this.x += touch.moveX * this.speed * dt;
+      this.y += touch.moveY * this.speed * dt;
+    }
+
     this.x = Math.max(0, Math.min(bounds.width - this.width, this.x));
     this.y = Math.max(0, Math.min(bounds.height - this.height, this.y));
 
@@ -32,8 +39,9 @@ export class Player {
     if (this.invincible > 0) this.invincible -= dt;
   }
 
-  canShoot(input) {
-    return (input.isPressed('Space') || input.isPressed('KeyJ')) && this.shootCooldown <= 0;
+  canShoot(input, touch) {
+    const pressed = input.isPressed('Space') || input.isPressed('KeyJ') || (touch && touch.shooting);
+    return pressed && this.shootCooldown <= 0;
   }
 
   shoot() {
